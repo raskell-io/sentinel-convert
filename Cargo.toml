@@ -1,0 +1,64 @@
+[package]
+name = "sentinel-convert"
+version = "0.1.0"
+edition = "2021"
+authors = ["Raskell <hello@raskell.io>"]
+description = "Convert reverse proxy configurations to Sentinel KDL format"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/raskell-io/sentinel-convert"
+keywords = ["sentinel", "proxy", "config", "converter", "nginx"]
+categories = ["command-line-utilities", "config"]
+
+[dependencies]
+# CLI
+clap = { version = "4.4", features = ["derive", "env", "string"] }
+colored = "2.1"
+
+# Parsing
+nom = "7.1"
+regex = "1.10"
+lazy_static = "1.4"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# KDL output
+kdl = "4.6"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+miette = { version = "7.2", features = ["fancy"] }
+
+# Utilities
+walkdir = "2.5"
+glob = "0.3"
+url = "2.5"
+ipnet = "2.9"
+humantime = "2.1"
+indexmap = { version = "2.2", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+insta = { version = "1.38", features = ["yaml"] }
+tempfile = "3.10"
+
+[[bin]]
+name = "sentinel-convert"
+path = "src/main.rs"
+
+[lib]
+name = "sentinel_convert"
+path = "src/lib.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
