@@ -1,9 +1,9 @@
 //! Parser plugins for various reverse proxy config formats
 
+pub mod haproxy;
 pub mod nginx;
+pub mod traefik;
 // pub mod apache;
-// pub mod haproxy;
-// pub mod traefik;
 // pub mod caddy;
 // pub mod envoy;
 
@@ -156,9 +156,9 @@ impl ParserRegistry {
 
         // Register built-in parsers
         registry.register(Box::new(nginx::NginxParser::new()));
+        registry.register(Box::new(haproxy::HAProxyParser::new()));
+        registry.register(Box::new(traefik::TraefikParser::new()));
         // registry.register(Box::new(apache::ApacheParser::new()));
-        // registry.register(Box::new(haproxy::HAProxyParser::new()));
-        // registry.register(Box::new(traefik::TraefikParser::new()));
         // registry.register(Box::new(caddy::CaddyParser::new()));
         // registry.register(Box::new(envoy::EnvoyParser::new()));
 

@@ -1,0 +1,146 @@
+# Basic Traefik configuration example
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+http:
+  routers:
+    api-router:
+      rule: "Host(`api.example.com`) && PathPrefix(`/api`)"
+      service: api-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - rate-limit
+        - api-auth
+        - security-headers
+      tls:
+        certResolver: letsencrypt
+
+    web-router:
+      rule: "Host(`example.com`) || Host(`www.example.com`)"
+      service: web-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - security-headers
+        - compress
+
+    admin-router:
+      rule: "Host(`admin.example.com`)"
+      service: admin-service
+      entryPoints:
+        - websecure
+      middlewares:
+        - admin-auth
+        - ip-whitelist
+      priority: 100
+
+  services:
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.0.1:8080"
+            weight: 5
+          - url: "http://10.0.0.2:8080"
+            weight: 3
+          - url: "http://10.0.0.3:8080"
+            weight: 2
+        healthCheck:
+          path: /health
+          interval: 10s
+          timeout: 3s
+        sticky:
+          cookie:
+            name: api_session
+            secure: true
+            httpOnly: true
+
+    web-service:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.1.1:3000"
+          - url: "http://10.0.1.2:3000"
+        passHostHeader: true
+
+    admin-service:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.2.1:9000"
+
+  middlewares:
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    api-auth:
+      forwardAuth:
+        address: "http://auth-service:8080/verify"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-User-ID
+          - X-User-Role
+
+    admin-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$xyz..."
+        realm: "Admin Area"
+        removeHeader: true
+
+    ip-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "10.0.0.0/8"
+          - "192.168.1.0/24"
+          - "172.16.0.0/12"
+
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        contentSecurityPolicy: "default-src 'self'"
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Custom-Header: "sentinel-converted"
+
+    compress:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+        minResponseBodyBytes: 1024
+
+    strip-api:
+      stripPrefix:
+        prefixes:
+          - "/api"
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      sniStrict: true
