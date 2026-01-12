@@ -1,0 +1,131 @@
+---
+source: tests/golden_tests.rs
+expression: kdl
+---
+schema-version "1.0"
+
+system {
+}
+
+listeners {
+    listener "web" {
+        address "0.0.0.0:80"
+        protocol "http"
+    }
+    listener "websecure" {
+        address "0.0.0.0:443"
+        protocol "https"
+        tls {
+        }
+    }
+}
+
+routes {
+    route "admin-router" {
+        priority "critical"
+        matches {
+            host "admin.example.com"
+        }
+        upstream "admin-service"
+        filters "admin-auth-auth" "ip-whitelist-waf"
+    }
+    route "api-router" {
+        matches {
+            host "api.example.com"
+            path-prefix "/api"
+        }
+        upstream "api-service"
+        filters "rate-limit-ratelimit" "api-auth-auth" "security-headers"
+    }
+    route "web-router" {
+        matches {
+            host "example.com"
+            host "www.example.com"
+        }
+        upstream "web-service"
+        filters "security-headers" "compress"
+    }
+}
+
+upstreams {
+    upstream "admin-service" {
+        target "10.0.2.1:9000"
+        load-balancing "round_robin"
+    }
+    upstream "api-service" {
+        target "10.0.0.1:8080" weight=5
+        target "10.0.0.2:8080" weight=3
+        target "10.0.0.3:8080" weight=2
+        load-balancing "ip_hash"
+        health-check {
+            type "http" {
+                path "/health"
+                expected-status 200
+            }
+            interval-ms 10000
+            timeout-ms 3000
+            healthy-threshold 2
+            unhealthy-threshold 3
+        }
+    }
+    upstream "web-service" {
+        target "10.0.1.1:3000"
+        target "10.0.1.2:3000"
+        load-balancing "round_robin"
+    }
+}
+
+filters {
+    filter "compress" {
+        type "compression"
+        algorithms "gzip" "br"
+        min-size 1024
+    }
+    filter "security-headers" {
+        type "headers"
+        response {
+            set "X-Custom-Header" "sentinel-converted"
+            set "Strict-Transport-Security" "max-age=31536000; includeSubDomains; preload"
+            set "X-Frame-Options" "DENY"
+            set "X-Content-Type-Options" "nosniff"
+            set "X-XSS-Protection" "1; mode=block"
+            set "Content-Security-Policy" "default-src 'self'"
+            set "Referrer-Policy" "strict-origin-when-cross-origin"
+        }
+    }
+}
+
+agents {
+    agent "admin-auth-auth" {
+        type "auth"
+        unix-socket path="/run/sentinel/admin-auth-auth.sock"
+        timeout-ms 100
+        failure-mode "closed"
+        realm "Admin Area"
+    }
+    agent "api-auth-auth" {
+        type "auth"
+        unix-socket path="/run/sentinel/api-auth-auth.sock"
+        timeout-ms 100
+        failure-mode "closed"
+    }
+    agent "ip-whitelist-waf" {
+        type "waf"
+        unix-socket path="/run/sentinel/ip-whitelist-waf.sock"
+        timeout-ms 50
+        failure-mode "closed"
+    }
+    agent "rate-limit-ratelimit" {
+        type "rate-limit"
+        unix-socket path="/run/sentinel/rate-limit-ratelimit.sock"
+        timeout-ms 50
+        failure-mode "open"
+        limits {
+            rate-limit {
+                rate 100
+                period-ms 1000
+                burst 50
+            }
+        }
+    }
+}

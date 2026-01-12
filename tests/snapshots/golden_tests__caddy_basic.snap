@@ -1,0 +1,142 @@
+---
+source: tests/golden_tests.rs
+expression: kdl
+---
+schema-version "1.0"
+
+system {
+}
+
+listeners {
+    listener "listener-443" {
+        address "0.0.0.0:443"
+        protocol "https"
+        tls {
+        }
+    }
+    listener "listener-9000" {
+        address "0.0.0.0:9000"
+        protocol "http"
+    }
+}
+
+routes {
+    route "redirect-61" {
+        matches {
+            host "example.com"
+            host "www.example.com"
+        }
+        redirect {
+            url "@www"
+            status 302
+        }
+    }
+    route "respond-73" {
+        matches {
+            host "example.com"
+            host "www.example.com"
+        }
+        respond {
+            status 200
+            body "OK"
+        }
+    }
+    route "route-1" {
+        matches {
+            host "api.example.com"
+        }
+        upstream "upstream-1"
+    }
+    route "route-2" {
+        matches {
+            host "example.com"
+            host "www.example.com"
+            path-prefix "/api/"
+        }
+        upstream "upstream-2"
+    }
+    route "route-3" {
+        upstream "upstream-3"
+    }
+    route "static-example.com" {
+        priority "low"
+        matches {
+            host "example.com"
+            host "www.example.com"
+        }
+        static-files {
+            root "/var/www/html"
+            index "index.html" "index.htm"
+            directory-listing #false
+        }
+    }
+}
+
+upstreams {
+    upstream "upstream-1" {
+        target "10.0.0.1:8080"
+        target "10.0.0.2:8080"
+        target "10.0.0.3:8080"
+        load-balancing "least_connections"
+        health-check {
+            type "http" {
+                path "/health"
+                expected-status 200
+            }
+            interval-ms 10000
+            timeout-ms 5000
+            healthy-threshold 2
+            unhealthy-threshold 3
+        }
+    }
+    upstream "upstream-2" {
+        target "api-backend:8080"
+        load-balancing "round_robin"
+    }
+    upstream "upstream-3" {
+        target "localhost:3000"
+        load-balancing "round_robin"
+    }
+}
+
+filters {
+    filter "compression" {
+        type "compression"
+        algorithms "gzip"
+        min-size 1024
+    }
+}
+
+agents {
+    agent "basicauth" {
+        type "auth"
+        unix-socket path="/run/sentinel/auth.sock"
+        timeout-ms 100
+        failure-mode "closed"
+        realm "@admin"
+    }
+    agent "basicauth" {
+        type "auth"
+        unix-socket path="/run/sentinel/auth.sock"
+        timeout-ms 100
+        failure-mode "closed"
+    }
+    agent "forward-auth" {
+        type "auth"
+        unix-socket path="/run/sentinel/forward-auth.sock"
+        timeout-ms 100
+        failure-mode "closed"
+    }
+    agent "rate-limit" {
+        type "rate-limit"
+        unix-socket path="/run/sentinel/ratelimit.sock"
+        timeout-ms 50
+        failure-mode "open"
+        limits {
+            api_limit {
+                rate 100
+                period-ms 60000
+            }
+        }
+    }
+}

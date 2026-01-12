@@ -5,7 +5,9 @@ use super::mapping::map_nginx_to_ir;
 use super::{Directive, NginxConfig};
 use crate::ir::SourceFormat;
 use crate::parsers::{FormatSignature, ParseContext, ParseError, ParseOutput, Parser};
-use std::path::Path;
+use glob::glob;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// nginx configuration parser
 pub struct NginxParser;
@@ -140,6 +142,132 @@ impl NginxParser {
             message: "Directive not terminated with ; or {".to_string(),
         })
     }
+
+    /// Process include directives in the parsed config
+    fn process_includes(
+        directives: Vec<Directive>,
+        ctx: &mut ParseContext,
+    ) -> Result<Vec<Directive>, ParseError> {
+        if !ctx.options.follow_includes {
+            return Ok(directives);
+        }
+
+        let mut result = Vec::new();
+
+        for directive in directives {
+            if directive.name == "include" {
+                // Process include directive
+                if let Some(pattern) = directive.first_arg() {
+                    let included = Self::resolve_and_parse_include(pattern, ctx, &directive)?;
+                    result.extend(included);
+                }
+            } else if directive.block.is_some() {
+                // Recursively process block contents
+                let block = directive.block.unwrap();
+                let processed_block = Self::process_includes(block, ctx)?;
+                let mut new_directive = Directive::new(
+                    directive.name.clone(),
+                    directive.location.line,
+                    directive.location.file.clone(),
+                );
+                new_directive.args = directive.args;
+                new_directive.block = Some(processed_block);
+                result.push(new_directive);
+            } else {
+                result.push(directive);
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// Resolve include pattern and parse matching files
+    fn resolve_and_parse_include(
+        pattern: &str,
+        ctx: &mut ParseContext,
+        include_directive: &Directive,
+    ) -> Result<Vec<Directive>, ParseError> {
+        // Resolve the include path
+        let resolved_pattern = if Path::new(pattern).is_absolute() {
+            pattern.to_string()
+        } else {
+            ctx.base_dir.join(pattern).to_string_lossy().to_string()
+        };
+
+        // Expand glob pattern
+        let paths = Self::expand_glob(&resolved_pattern, include_directive)?;
+
+        if paths.is_empty() {
+            // nginx silently ignores includes with no matches when using glob
+            // But warn about it in strict mode
+            return Ok(Vec::new());
+        }
+
+        let mut all_directives = Vec::new();
+
+        for path in paths {
+            // Check for cycles and depth
+            ctx.can_include(&path)?;
+
+            // Track this file
+            ctx.processed.insert(path.clone());
+            ctx.include_depth += 1;
+
+            // Read the file
+            let content = fs::read_to_string(&path).map_err(ParseError::Io)?;
+
+            // Tokenize and parse
+            let tokens = tokenize(&content).map_err(|e| ParseError::Syntax {
+                file: path.clone(),
+                line: 0,
+                column: None,
+                message: e,
+            })?;
+
+            let config = Self::parse_tokens(&tokens, &path)?;
+
+            // Recursively process includes in the included file
+            let processed = Self::process_includes(config.directives, ctx)?;
+            all_directives.extend(processed);
+
+            ctx.include_depth -= 1;
+        }
+
+        Ok(all_directives)
+    }
+
+    /// Expand glob pattern to list of file paths
+    fn expand_glob(pattern: &str, directive: &Directive) -> Result<Vec<PathBuf>, ParseError> {
+        // Check if pattern contains glob characters
+        if pattern.contains('*') || pattern.contains('?') || pattern.contains('[') {
+            let mut paths: Vec<PathBuf> = glob(pattern)
+                .map_err(|e| ParseError::Syntax {
+                    file: directive.location.file.clone(),
+                    line: directive.location.line,
+                    column: None,
+                    message: format!("Invalid glob pattern: {}", e),
+                })?
+                .filter_map(|r| r.ok())
+                .filter(|p| p.is_file())
+                .collect();
+
+            // Sort for consistent ordering
+            paths.sort();
+            Ok(paths)
+        } else {
+            // Single file
+            let path = PathBuf::from(pattern);
+            if path.exists() {
+                Ok(vec![path])
+            } else {
+                // nginx errors on missing non-glob includes
+                Err(ParseError::Io(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!("Include file not found: {}", pattern),
+                )))
+            }
+        }
+    }
 }
 
 impl Default for NginxParser {
@@ -164,6 +292,9 @@ impl Parser for NginxParser {
     }
 
     fn parse(&self, ctx: &mut ParseContext) -> Result<ParseOutput, ParseError> {
+        // Mark primary file as processed (for cycle detection)
+        ctx.processed.insert(ctx.primary_path.clone());
+
         // Tokenize
         let tokens = tokenize(&ctx.content)
             .map_err(|e| ParseError::Syntax {
@@ -174,7 +305,10 @@ impl Parser for NginxParser {
             })?;
 
         // Parse tokens into AST
-        let nginx_config = Self::parse_tokens(&tokens, &ctx.primary_path)?;
+        let mut nginx_config = Self::parse_tokens(&tokens, &ctx.primary_path)?;
+
+        // Process include directives
+        nginx_config.directives = Self::process_includes(nginx_config.directives, ctx)?;
 
         // Convert to IR
         let output = map_nginx_to_ir(nginx_config, ctx)?;
@@ -283,5 +417,51 @@ mod tests {
 
         let location_block = server_block[0].block.as_ref().unwrap();
         assert_eq!(location_block[0].name, "proxy_pass");
+    }
+
+    #[test]
+    fn test_process_includes_disabled() {
+        use crate::parsers::{ParseContext, ParseOptions};
+
+        // Test that includes are skipped when follow_includes is false
+        let directives = vec![
+            Directive::new("worker_processes", 1, PathBuf::from("test.conf"))
+                .with_args(vec!["4".to_string()]),
+            Directive::new("include", 2, PathBuf::from("test.conf"))
+                .with_args(vec!["/some/nonexistent/file.conf".to_string()]),
+        ];
+
+        let mut ctx = ParseContext::new(PathBuf::from("test.conf"), String::new());
+        ctx.options = ParseOptions {
+            follow_includes: false,
+            ..Default::default()
+        };
+
+        // Should not error because includes are disabled
+        let result = NginxParser::process_includes(directives.clone(), &mut ctx);
+        assert!(result.is_ok());
+
+        // The include directive should remain in the output (not expanded)
+        let processed = result.unwrap();
+        assert_eq!(processed.len(), 2);
+        assert_eq!(processed[0].name, "worker_processes");
+        assert_eq!(processed[1].name, "include");
+    }
+
+    #[test]
+    fn test_glob_expansion() {
+        // Test glob pattern detection
+        assert!(NginxParser::expand_glob(
+            "/nonexistent/*.conf",
+            &Directive::new("include", 1, PathBuf::from("test.conf"))
+        )
+        .is_ok()); // Glob with no matches returns empty vec
+
+        // Non-glob path that doesn't exist should error
+        let result = NginxParser::expand_glob(
+            "/nonexistent/specific.conf",
+            &Directive::new("include", 1, PathBuf::from("test.conf")),
+        );
+        assert!(result.is_err());
     }
 }

@@ -1,0 +1,95 @@
+# Global options
+{
+    email admin@example.com
+    admin off
+    auto_https off
+}
+
+# API backend
+api.example.com {
+    # Rate limiting
+    rate_limit {
+        zone api_limit {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+
+    # Authentication for admin routes
+    @admin path /admin/*
+    basicauth @admin {
+        admin $2a$14$...hashed_password...
+    }
+
+    # Forward auth for other protected routes
+    @protected path /protected/*
+    forward_auth @protected http://auth-service:8080/verify
+
+    # API reverse proxy with load balancing
+    reverse_proxy /api/* {
+        to 10.0.0.1:8080
+        to 10.0.0.2:8080
+        to 10.0.0.3:8080
+        lb_policy least_conn
+        health_uri /health
+        health_interval 10s
+    }
+
+    # Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        -Server
+    }
+
+    # Compression
+    encode gzip zstd
+
+    # Logging
+    log {
+        output file /var/log/caddy/api.log
+        format json
+    }
+}
+
+# Main website
+example.com, www.example.com {
+    # Redirect www to non-www
+    @www host www.example.com
+    redir @www https://example.com{uri} permanent
+
+    # Static files
+    root * /var/www/html
+    file_server
+
+    # Handle specific paths
+    handle_path /api/* {
+        reverse_proxy api-backend:8080
+    }
+
+    handle /health {
+        respond "OK" 200
+    }
+
+    # Compression
+    encode gzip
+
+    # TLS with automatic certificates
+    tls {
+        protocols tls1.2 tls1.3
+    }
+}
+
+# Admin dashboard on different port
+:9000 {
+    basicauth {
+        admin $2a$14$...
+    }
+
+    reverse_proxy localhost:3000
+
+    # Internal TLS
+    tls internal
+}

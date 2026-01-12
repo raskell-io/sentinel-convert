@@ -1,0 +1,73 @@
+---
+source: tests/golden_tests.rs
+expression: kdl
+---
+schema-version "1.0"
+
+system {
+    worker-threads 4
+    max-connections 1024
+}
+
+listeners {
+    listener "listener_443" {
+        address "0.0.0.0:443"
+        protocol "h2"
+        tls {
+            cert-file "/etc/ssl/certs/api.crt"
+            key-file "/etc/ssl/private/api.key"
+        }
+    }
+    listener "listener_80" {
+        address "0.0.0.0:80"
+        protocol "https"
+        tls {
+            cert-file "/etc/ssl/certs/api.crt"
+            key-file "/etc/ssl/private/api.key"
+        }
+    }
+}
+
+routes {
+    route "route_api_v1" {
+        matches {
+            path-prefix "/api/v1/"
+            host "api.example.com"
+        }
+        upstream "backend"
+        timeout-ms 60000
+    }
+    route "route_health" {
+        matches {
+            path-prefix "/health"
+            host "api.example.com"
+        }
+        respond {
+            status 200
+            body "OK"
+        }
+    }
+    route "route_static" {
+        matches {
+            path-prefix "/static/"
+            host "api.example.com"
+        }
+        static-files {
+            root "/var/www/html"
+            index "index.html"
+            directory-listing #false
+        }
+    }
+}
+
+upstreams {
+    upstream "backend" {
+        target "10.0.0.1:8080" weight=5
+        target "10.0.0.2:8080" weight=3
+        target "10.0.0.3:8080" backup=#true
+        load-balancing "least_connections"
+        connection-pool {
+            max-idle 32
+        }
+    }
+}

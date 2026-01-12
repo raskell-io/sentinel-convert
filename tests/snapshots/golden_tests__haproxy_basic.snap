@@ -1,0 +1,66 @@
+---
+source: tests/golden_tests.rs
+expression: kdl
+---
+schema-version "1.0"
+
+system {
+    worker-threads 4
+    max-connections 4096
+}
+
+listeners {
+    listener "http_front_443" {
+        address "0.0.0.0:443"
+        protocol "https"
+        tls {
+            cert-file "/etc/ssl/certs/server.pem"
+        }
+    }
+    listener "http_front_80" {
+        address "0.0.0.0:80"
+        protocol "http"
+    }
+    listener "stats_8404" {
+        address "0.0.0.0:8404"
+        protocol "http"
+    }
+}
+
+routes {
+    route "http_front_default" {
+        priority "low"
+        upstream "web_servers"
+    }
+    route "http_front_route_0" {
+        matches {
+            path-prefix "/api"
+        }
+        upstream "api_servers"
+    }
+    route "http_front_route_1" {
+        matches {
+            path-prefix "/static"
+        }
+        upstream "static_servers"
+    }
+}
+
+upstreams {
+    upstream "api_servers" {
+        target "10.0.0.1:8080" weight=5
+        target "10.0.0.2:8080" weight=3
+        target "10.0.0.3:8080" backup=#true
+        load-balancing "least_connections"
+    }
+    upstream "static_servers" {
+        target "10.0.1.1:80"
+        target "10.0.1.2:80"
+        load-balancing "round_robin"
+    }
+    upstream "web_servers" {
+        target "10.0.2.1:8080"
+        target "10.0.2.2:8080"
+        load-balancing "ip_hash"
+    }
+}

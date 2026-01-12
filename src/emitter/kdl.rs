@@ -107,7 +107,11 @@ impl KdlEmitter {
     fn emit_listeners(&self, output: &mut String, listeners: &[Listener], indent: &str) -> Result<(), String> {
         writeln!(output, "listeners {{").unwrap();
 
-        for listener in listeners {
+        // Sort by name for deterministic output
+        let mut sorted_listeners: Vec<_> = listeners.iter().collect();
+        sorted_listeners.sort_by_key(|l| &l.name);
+
+        for listener in sorted_listeners {
             writeln!(output, "{}listener \"{}\" {{", indent, listener.name).unwrap();
 
             // Address
@@ -160,7 +164,11 @@ impl KdlEmitter {
     fn emit_routes(&self, output: &mut String, routes: &[Route], indent: &str) -> Result<(), String> {
         writeln!(output, "routes {{").unwrap();
 
-        for route in routes {
+        // Sort by name for deterministic output
+        let mut sorted_routes: Vec<_> = routes.iter().collect();
+        sorted_routes.sort_by_key(|r| &r.name);
+
+        for route in sorted_routes {
             if self.options.include_comments {
                 if let Some(desc) = &route.metadata.description {
                     writeln!(output, "{}// {}", indent, desc).unwrap();
@@ -306,7 +314,11 @@ impl KdlEmitter {
     fn emit_upstreams(&self, output: &mut String, upstreams: &std::collections::HashMap<String, Upstream>, indent: &str) -> Result<(), String> {
         writeln!(output, "upstreams {{").unwrap();
 
-        for (name, upstream) in upstreams {
+        // Sort by name for deterministic output
+        let mut sorted_upstreams: Vec<_> = upstreams.iter().collect();
+        sorted_upstreams.sort_by_key(|(name, _)| *name);
+
+        for (name, upstream) in sorted_upstreams {
             writeln!(output, "{}upstream \"{}\" {{", indent, name).unwrap();
 
             // Endpoints
@@ -380,7 +392,11 @@ impl KdlEmitter {
     fn emit_filters(&self, output: &mut String, filters: &std::collections::HashMap<String, Filter>, indent: &str) -> Result<(), String> {
         writeln!(output, "filters {{").unwrap();
 
-        for (name, filter) in filters {
+        // Sort by name for deterministic output
+        let mut sorted_filters: Vec<_> = filters.iter().collect();
+        sorted_filters.sort_by_key(|(name, _)| *name);
+
+        for (name, filter) in sorted_filters {
             writeln!(output, "{}filter \"{}\" {{", indent, name).unwrap();
             writeln!(output, "{}{}type \"{}\"", indent, indent, filter.filter_type).unwrap();
 
@@ -429,7 +445,11 @@ impl KdlEmitter {
     fn emit_agents(&self, output: &mut String, agents: &[Agent], indent: &str) -> Result<(), String> {
         writeln!(output, "agents {{").unwrap();
 
-        for agent in agents {
+        // Sort by name for deterministic output
+        let mut sorted_agents: Vec<_> = agents.iter().collect();
+        sorted_agents.sort_by_key(|a| &a.name);
+
+        for agent in sorted_agents {
             // Add comment about detection
             if self.options.include_comments {
                 if let AgentDetection::Inferred { patterns_matched, .. } = &agent.detection {
