@@ -1,0 +1,147 @@
+---
+source: tests/golden_tests.rs
+expression: kdl
+---
+schema-version "1.0"
+
+system {
+    worker-threads 0
+    max-connections 10000
+}
+
+listeners {
+    listener "listener_http_listener" {
+        address "0.0.0.0:8080"
+        protocol "h2c"
+    }
+    listener "listener_https_listener" {
+        address "0.0.0.0:8443"
+        protocol "h2"
+        tls {
+        }
+    }
+}
+
+routes {
+    route "admin_route" {
+        matches {
+            host "admin.example.com"
+            path-prefix "/"
+            header "X-Admin-Token" "secret123"
+        }
+        upstream "admin_backend"
+    }
+    route "api_route" {
+        matches {
+            host "api.example.com"
+            path-prefix "/api"
+        }
+        upstream "api_backend"
+        path-rewrite "^/.*" "/"
+        timeout-ms 30000
+    }
+    route "default_route" {
+        matches {
+            host "example.com"
+            host "www.example.com"
+            path-prefix "/"
+        }
+        upstream "web_backend"
+        timeout-ms 10000
+    }
+    route "secure_host-0" {
+        matches {
+            path-prefix "/"
+        }
+        redirect {
+            url "/"
+            status 301
+            preserve-path #true
+        }
+    }
+    route "static_assets" {
+        matches {
+            host "example.com"
+            host "www.example.com"
+            path-prefix "/static/"
+        }
+        upstream "static_backend"
+    }
+}
+
+upstreams {
+    upstream "admin_backend" {
+        target "10.0.3.1:9000"
+        load-balancing "round_robin"
+    }
+    upstream "api_backend" {
+        target "10.0.0.1:8080" weight=50
+        target "10.0.0.2:8080" weight=30
+        target "10.0.0.3:8080" weight=20
+        load-balancing "round_robin"
+        health-check {
+            type "http" {
+                path "/health"
+                expected-status 200
+            }
+            interval-ms 10000
+            timeout-ms 5000
+            healthy-threshold 2
+            unhealthy-threshold 3
+        }
+        connection-pool {
+            max-connections 1000
+        }
+    }
+    upstream "auth_service" {
+        target "auth-service:50051"
+        load-balancing "round_robin"
+    }
+    upstream "ratelimit_service" {
+        target "ratelimit-service:8081"
+        load-balancing "round_robin"
+    }
+    upstream "static_backend" {
+        target "10.0.2.1:80"
+        load-balancing "random"
+    }
+    upstream "web_backend" {
+        target "10.0.1.1:3000"
+        target "10.0.1.2:3000"
+        load-balancing "least_connections"
+        health-check {
+            type "tcp"
+            interval-ms 5000
+            timeout-ms 3000
+            healthy-threshold 2
+            unhealthy-threshold 2
+        }
+    }
+}
+
+filters {
+    filter "headers-api_host" {
+        type "headers"
+        request {
+            set "X-Request-Start" "%START_TIME%"
+        }
+        response {
+            set "X-Envoy-Upstream-Service-Time" "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%"
+        }
+    }
+}
+
+agents {
+    agent "ext-authz" {
+        type "auth"
+        unix-socket path="/run/sentinel/ext-authz.sock"
+        timeout-ms 100
+        failure-mode "closed"
+    }
+    agent "ratelimit" {
+        type "rate-limit"
+        unix-socket path="/run/sentinel/ratelimit.sock"
+        timeout-ms 50
+        failure-mode "open"
+    }
+}

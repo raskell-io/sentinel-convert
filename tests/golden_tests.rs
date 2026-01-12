@@ -56,3 +56,9 @@ fn test_caddy_basic() {
     let kdl = convert_fixture("caddy/Caddyfile");
     insta::assert_snapshot!("caddy_basic", kdl);
 }
+
+#[test]
+fn test_envoy_basic() {
+    let kdl = convert_fixture("envoy/basic.yaml");
+    insta::assert_snapshot!("envoy_basic", kdl);
+}

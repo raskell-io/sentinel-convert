@@ -1,0 +1,267 @@
+# Basic Envoy configuration example
+# Demonstrates listeners, clusters, routes, and filters
+
+static_resources:
+  listeners:
+    - name: http_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 8080
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                codec_type: AUTO
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: api_host
+                      domains:
+                        - "api.example.com"
+                      routes:
+                        - name: api_route
+                          match:
+                            prefix: "/api"
+                          route:
+                            cluster: api_backend
+                            timeout: 30s
+                            prefix_rewrite: "/"
+                      request_headers_to_add:
+                        - header:
+                            key: X-Request-Start
+                            value: "%START_TIME%"
+                          append: false
+                      response_headers_to_add:
+                        - header:
+                            key: X-Envoy-Upstream-Service-Time
+                            value: "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%"
+                          append: false
+
+                    - name: web_host
+                      domains:
+                        - "example.com"
+                        - "www.example.com"
+                      routes:
+                        - name: static_assets
+                          match:
+                            prefix: "/static/"
+                          route:
+                            cluster: static_backend
+                        - name: default_route
+                          match:
+                            prefix: "/"
+                          route:
+                            cluster: web_backend
+                            timeout: 10s
+
+                    - name: admin_host
+                      domains:
+                        - "admin.example.com"
+                      routes:
+                        - name: admin_route
+                          match:
+                            prefix: "/"
+                            headers:
+                              - name: "X-Admin-Token"
+                                exact_match: "secret123"
+                          route:
+                            cluster: admin_backend
+
+                http_filters:
+                  - name: envoy.filters.http.ext_authz
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                      grpc_service:
+                        envoy_grpc:
+                          cluster_name: auth_service
+                        timeout: 0.5s
+                      failure_mode_allow: false
+
+                  - name: envoy.filters.http.ratelimit
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+                      domain: api_ratelimit
+                      failure_mode_deny: false
+                      rate_limit_service:
+                        grpc_service:
+                          envoy_grpc:
+                            cluster_name: ratelimit_service
+                        transport_api_version: V3
+
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+    - name: https_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 8443
+      filter_chains:
+        - transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              common_tls_context:
+                tls_certificates:
+                  - certificate_chain:
+                      filename: /etc/envoy/certs/server.crt
+                    private_key:
+                      filename: /etc/envoy/certs/server.key
+          filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_https
+                codec_type: AUTO
+                route_config:
+                  name: https_route
+                  virtual_hosts:
+                    - name: secure_host
+                      domains:
+                        - "*"
+                      routes:
+                        - match:
+                            prefix: "/"
+                          redirect:
+                            path_redirect: "/"
+                            https_redirect: true
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: api_backend
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: api_backend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 10.0.0.1
+                      port_value: 8080
+                load_balancing_weight: 50
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 10.0.0.2
+                      port_value: 8080
+                load_balancing_weight: 30
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 10.0.0.3
+                      port_value: 8080
+                load_balancing_weight: 20
+      health_checks:
+        - timeout: 5s
+          interval: 10s
+          healthy_threshold: 2
+          unhealthy_threshold: 3
+          http_health_check:
+            path: /health
+            expected_statuses:
+              - start: 200
+                end: 299
+      circuit_breakers:
+        thresholds:
+          - priority: DEFAULT
+            max_connections: 1000
+            max_pending_requests: 100
+            max_requests: 1000
+            max_retries: 3
+
+    - name: web_backend
+      type: STRICT_DNS
+      lb_policy: LEAST_REQUEST
+      load_assignment:
+        cluster_name: web_backend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 10.0.1.1
+                      port_value: 3000
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 10.0.1.2
+                      port_value: 3000
+      health_checks:
+        - timeout: 3s
+          interval: 5s
+          healthy_threshold: 2
+          unhealthy_threshold: 2
+          tcp_health_check: {}
+
+    - name: static_backend
+      type: STATIC
+      lb_policy: RANDOM
+      load_assignment:
+        cluster_name: static_backend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 10.0.2.1
+                      port_value: 80
+
+    - name: admin_backend
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: admin_backend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 10.0.3.1
+                      port_value: 9000
+
+    - name: auth_service
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      http2_protocol_options: {}
+      load_assignment:
+        cluster_name: auth_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: auth-service
+                      port_value: 50051
+
+    - name: ratelimit_service
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      http2_protocol_options: {}
+      load_assignment:
+        cluster_name: ratelimit_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: ratelimit-service
+                      port_value: 8081
+
+admin:
+  address:
+    socket_address:
+      address: 127.0.0.1
+      port_value: 9901
+
+node:
+  cluster: my-cluster
+  id: my-node-id
