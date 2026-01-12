@@ -1,0 +1,30 @@
+[package]
+name = "sentinel-convert-wasm"
+version = "0.1.0"
+edition = "2021"
+authors = ["Raskell <hello@raskell.io>"]
+description = "WebAssembly bindings for sentinel-convert"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/raskell-io/sentinel-convert"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+sentinel-convert = { path = "../.." }
+wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.10"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

@@ -1,3 +1,7 @@
+[workspace]
+members = ["crates/wasm"]
+resolver = "2"
+
 [package]
 name = "sentinel-convert"
 version = "0.1.0"
