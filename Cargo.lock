@@ -754,49 +754,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zentinel-convert"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "colored",
- "glob",
- "humantime",
- "indexmap",
- "insta",
- "ipnet",
- "kdl",
- "lazy_static",
- "miette 7.6.0",
- "nom",
- "pretty_assertions",
- "regex",
- "serde",
- "serde_json",
- "serde_yaml",
- "tempfile",
- "thiserror",
- "toml",
- "tracing",
- "tracing-subscriber",
- "url",
- "walkdir",
-]
-
-[[package]]
-name = "zentinel-convert-wasm"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "regex",
- "zentinel-convert",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1465,6 +1422,49 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
+]
+
+[[package]]
+name = "zentinel-convert"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "colored",
+ "glob",
+ "humantime",
+ "indexmap",
+ "insta",
+ "ipnet",
+ "kdl",
+ "lazy_static",
+ "miette 7.6.0",
+ "nom",
+ "pretty_assertions",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "thiserror",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "walkdir",
+]
+
+[[package]]
+name = "zentinel-convert-wasm"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "regex",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "wasm-bindgen",
+ "zentinel-convert",
 ]
 
 [[package]]
