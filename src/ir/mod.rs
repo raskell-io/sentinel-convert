@@ -52,16 +52,16 @@ pub struct ConversionResult {
     /// Original file path(s)
     pub source_files: Vec<PathBuf>,
     /// The converted configuration
-    pub config: SentinelConfig,
+    pub config: ZentinelConfig,
     /// Generated KDL output
     pub kdl_output: String,
     /// Conversion diagnostics
     pub diagnostics: Diagnostics,
 }
 
-/// Complete Sentinel configuration in IR form
+/// Complete Zentinel configuration in IR form
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct SentinelConfig {
+pub struct ZentinelConfig {
     /// System/server configuration
     pub system: SystemConfig,
     /// Listeners (ports/bindings)

@@ -7,7 +7,7 @@ pub mod nginx;
 pub mod traefik;
 // pub mod apache;
 
-use crate::ir::{Diagnostics, SentinelConfig, SourceFormat};
+use crate::ir::{Diagnostics, ZentinelConfig, SourceFormat};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -37,7 +37,7 @@ pub enum ParseError {
 
 /// Result of parsing a configuration
 pub struct ParseOutput {
-    pub config: SentinelConfig,
+    pub config: ZentinelConfig,
     pub diagnostics: Diagnostics,
 }
 

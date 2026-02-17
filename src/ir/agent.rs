@@ -158,7 +158,7 @@ pub struct AuthAgentConfig {
 impl Default for AuthAgentConfig {
     fn default() -> Self {
         Self {
-            socket_path: PathBuf::from("/run/sentinel/auth.sock"),
+            socket_path: PathBuf::from("/run/zentinel/auth.sock"),
             auth_type: AuthType::Custom,
             type_config: AuthTypeConfig::Unknown,
             timeout_ms: Some(100),
@@ -228,7 +228,7 @@ pub struct RateLimitAgentConfig {
 impl Default for RateLimitAgentConfig {
     fn default() -> Self {
         Self {
-            socket_path: PathBuf::from("/run/sentinel/ratelimit.sock"),
+            socket_path: PathBuf::from("/run/zentinel/ratelimit.sock"),
             limits: Vec::new(),
             timeout_ms: Some(50),
             failure_mode: FailureMode::Open,

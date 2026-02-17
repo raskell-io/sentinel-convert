@@ -2,7 +2,7 @@
 
 use crate::ir::{
     AgentConfig, AgentSuggestion, AgentType, Confidence, RateLimitAgentConfig, RateLimitKey,
-    RateLimitRule, SentinelConfig,
+    RateLimitRule, ZentinelConfig,
 };
 
 /// Rate limit pattern detector
@@ -14,7 +14,7 @@ impl RateLimitDetector {
     }
 
     /// Detect rate limiting patterns in configuration
-    pub fn detect(&self, config: &SentinelConfig) -> Vec<AgentSuggestion> {
+    pub fn detect(&self, config: &ZentinelConfig) -> Vec<AgentSuggestion> {
         let mut suggestions = Vec::new();
         let mut rules = Vec::new();
         let mut routes_with_limits = Vec::new();
@@ -45,7 +45,7 @@ impl RateLimitDetector {
                 ),
                 routes: routes_with_limits,
                 extracted_config: Some(AgentConfig::RateLimit(RateLimitAgentConfig {
-                    socket_path: "/run/sentinel/ratelimit.sock".into(),
+                    socket_path: "/run/zentinel/ratelimit.sock".into(),
                     limits: rules,
                     ..Default::default()
                 })),

@@ -1,7 +1,7 @@
-//! Sentinel Config Converter
+//! Zentinel Config Converter
 //!
 //! Convert reverse proxy configurations from nginx, Apache, HAProxy,
-//! Traefik, Caddy, and Envoy to Sentinel KDL format.
+//! Traefik, Caddy, and Envoy to Zentinel KDL format.
 
 pub mod agents;
 pub mod cli;
@@ -9,7 +9,7 @@ pub mod emitter;
 pub mod ir;
 pub mod parsers;
 
-pub use ir::{ConversionResult, Diagnostics, SentinelConfig, SourceFormat};
+pub use ir::{ConversionResult, Diagnostics, ZentinelConfig, SourceFormat};
 pub use parsers::{ParseContext, ParseOptions, Parser, ParserRegistry};
 
 use std::path::Path;
@@ -35,13 +35,13 @@ pub enum ConvertError {
 
 pub type Result<T> = std::result::Result<T, ConvertError>;
 
-/// Convert a configuration file to Sentinel KDL format
+/// Convert a configuration file to Zentinel KDL format
 pub fn convert(path: &Path, options: ConvertOptions) -> Result<ConversionResult> {
     let content = std::fs::read_to_string(path)?;
     convert_string(&content, path, options)
 }
 
-/// Convert a configuration string to Sentinel KDL format
+/// Convert a configuration string to Zentinel KDL format
 pub fn convert_string(content: &str, path: &Path, options: ConvertOptions) -> Result<ConversionResult> {
     let registry = ParserRegistry::new();
 

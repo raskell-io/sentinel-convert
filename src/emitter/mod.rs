@@ -1,4 +1,4 @@
-//! KDL emitter for generating Sentinel configuration
+//! KDL emitter for generating Zentinel configuration
 
 mod kdl;
 

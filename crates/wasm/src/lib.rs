@@ -1,4 +1,4 @@
-//! WebAssembly bindings for sentinel-convert
+//! WebAssembly bindings for zentinel-convert
 //!
 //! Enables running the config converter in the browser.
 
@@ -6,7 +6,7 @@ use serde::Serialize;
 use std::path::Path;
 use wasm_bindgen::prelude::*;
 
-use sentinel_convert::{
+use zentinel_convert::{
     convert_string, AgentMode, ConvertOptions, ParseOptions, SourceFormat,
     emitter::EmitterOptions,
     parsers::ParserRegistry,
@@ -104,7 +104,7 @@ struct AgentInfo {
     patterns_matched: Vec<String>,
 }
 
-/// Convert a configuration string to Sentinel KDL format
+/// Convert a configuration string to Zentinel KDL format
 ///
 /// # Arguments
 /// * `config` - The source configuration content
@@ -160,13 +160,13 @@ pub fn convert(config: &str, format: Option<String>) -> JsValue {
                 .iter()
                 .map(|a| {
                     let (confidence, patterns) = match &a.detection {
-                        sentinel_convert::ir::AgentDetection::Explicit => {
+                        zentinel_convert::ir::AgentDetection::Explicit => {
                             ("explicit".to_string(), vec![])
                         }
-                        sentinel_convert::ir::AgentDetection::Inferred { confidence, patterns_matched } => {
+                        zentinel_convert::ir::AgentDetection::Inferred { confidence, patterns_matched } => {
                             (format!("{:?}", confidence).to_lowercase(), patterns_matched.clone())
                         }
-                        sentinel_convert::ir::AgentDetection::Suggested { reason } => {
+                        zentinel_convert::ir::AgentDetection::Suggested { reason } => {
                             ("suggested".to_string(), vec![reason.clone()])
                         }
                     };

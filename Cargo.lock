@@ -754,7 +754,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sentinel-convert"
+name = "zentinel-convert"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -784,12 +784,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "sentinel-convert-wasm"
+name = "zentinel-convert-wasm"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "regex",
- "sentinel-convert",
+ "zentinel-convert",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

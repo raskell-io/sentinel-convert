@@ -2,7 +2,7 @@
 
 use crate::ir::{
     AgentConfig, AgentSuggestion, AgentType, AuthAgentConfig, AuthType, AuthTypeConfig,
-    Confidence, HeaderMatch, RouteMatcher, SentinelConfig,
+    Confidence, HeaderMatch, RouteMatcher, ZentinelConfig,
 };
 use std::collections::HashMap;
 
@@ -15,7 +15,7 @@ impl AuthDetector {
     }
 
     /// Detect auth-related patterns in configuration
-    pub fn detect(&self, config: &SentinelConfig) -> Vec<AgentSuggestion> {
+    pub fn detect(&self, config: &ZentinelConfig) -> Vec<AgentSuggestion> {
         let mut suggestions = Vec::new();
         let mut auth_routes: HashMap<AuthType, Vec<String>> = HashMap::new();
 
@@ -68,7 +68,7 @@ impl AuthDetector {
                 ),
                 routes,
                 extracted_config: Some(AgentConfig::Auth(AuthAgentConfig {
-                    socket_path: "/run/sentinel/auth.sock".into(),
+                    socket_path: "/run/zentinel/auth.sock".into(),
                     auth_type,
                     type_config: match auth_type {
                         AuthType::Basic => AuthTypeConfig::Basic {

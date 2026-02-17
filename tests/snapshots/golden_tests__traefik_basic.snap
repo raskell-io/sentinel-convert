@@ -84,7 +84,7 @@ filters {
     filter "security-headers" {
         type "headers"
         response {
-            set "X-Custom-Header" "sentinel-converted"
+            set "X-Custom-Header" "zentinel-converted"
             set "Strict-Transport-Security" "max-age=31536000; includeSubDomains; preload"
             set "X-Frame-Options" "DENY"
             set "X-Content-Type-Options" "nosniff"
@@ -98,26 +98,26 @@ filters {
 agents {
     agent "admin-auth-auth" {
         type "auth"
-        unix-socket path="/run/sentinel/admin-auth-auth.sock"
+        unix-socket path="/run/zentinel/admin-auth-auth.sock"
         timeout-ms 100
         failure-mode "closed"
         realm "Admin Area"
     }
     agent "api-auth-auth" {
         type "auth"
-        unix-socket path="/run/sentinel/api-auth-auth.sock"
+        unix-socket path="/run/zentinel/api-auth-auth.sock"
         timeout-ms 100
         failure-mode "closed"
     }
     agent "ip-whitelist-waf" {
         type "waf"
-        unix-socket path="/run/sentinel/ip-whitelist-waf.sock"
+        unix-socket path="/run/zentinel/ip-whitelist-waf.sock"
         timeout-ms 50
         failure-mode "closed"
     }
     agent "rate-limit-ratelimit" {
         type "rate-limit"
-        unix-socket path="/run/sentinel/rate-limit-ratelimit.sock"
+        unix-socket path="/run/zentinel/rate-limit-ratelimit.sock"
         timeout-ms 50
         failure-mode "open"
         limits {

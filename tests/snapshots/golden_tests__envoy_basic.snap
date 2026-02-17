@@ -134,13 +134,13 @@ filters {
 agents {
     agent "ext-authz" {
         type "auth"
-        unix-socket path="/run/sentinel/ext-authz.sock"
+        unix-socket path="/run/zentinel/ext-authz.sock"
         timeout-ms 100
         failure-mode "closed"
     }
     agent "ratelimit" {
         type "rate-limit"
-        unix-socket path="/run/sentinel/ratelimit.sock"
+        unix-socket path="/run/zentinel/ratelimit.sock"
         timeout-ms 50
         failure-mode "open"
     }

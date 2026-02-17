@@ -1,17 +1,17 @@
 [package]
-name = "sentinel-convert-wasm"
+name = "zentinel-convert-wasm"
 version = "0.1.0"
 edition = "2021"
 authors = ["Raskell <hello@raskell.io>"]
-description = "WebAssembly bindings for sentinel-convert"
+description = "WebAssembly bindings for zentinel-convert"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/raskell-io/sentinel-convert"
+repository = "https://github.com/zentinelproxy/zentinel-convert"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-sentinel-convert = { path = "../.." }
+zentinel-convert = { path = "../.." }
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 serde = { version = "1.0", features = ["derive"] }

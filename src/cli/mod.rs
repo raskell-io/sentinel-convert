@@ -5,9 +5,9 @@ use crate::AgentMode;
 use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
-/// Convert reverse proxy configurations to Sentinel KDL format
+/// Convert reverse proxy configurations to Zentinel KDL format
 #[derive(Parser)]
-#[command(name = "sentinel-convert")]
+#[command(name = "zentinel-convert")]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Increase verbosity (can be repeated)
@@ -28,7 +28,7 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Convert configuration to Sentinel KDL
+    /// Convert configuration to Zentinel KDL
     Convert(ConvertArgs),
 
     /// Analyze configuration for agent opportunities
@@ -69,7 +69,7 @@ pub struct ConvertArgs {
     pub agents: AgentModeArg,
 
     /// Base directory for agent sockets
-    #[arg(long, default_value = "/run/sentinel")]
+    #[arg(long, default_value = "/run/zentinel")]
     pub agent_socket_dir: PathBuf,
 
     /// Include explanatory comments

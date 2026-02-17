@@ -110,26 +110,26 @@ filters {
 agents {
     agent "basicauth" {
         type "auth"
-        unix-socket path="/run/sentinel/auth.sock"
+        unix-socket path="/run/zentinel/auth.sock"
         timeout-ms 100
         failure-mode "closed"
         realm "@admin"
     }
     agent "basicauth" {
         type "auth"
-        unix-socket path="/run/sentinel/auth.sock"
+        unix-socket path="/run/zentinel/auth.sock"
         timeout-ms 100
         failure-mode "closed"
     }
     agent "forward-auth" {
         type "auth"
-        unix-socket path="/run/sentinel/forward-auth.sock"
+        unix-socket path="/run/zentinel/forward-auth.sock"
         timeout-ms 100
         failure-mode "closed"
     }
     agent "rate-limit" {
         type "rate-limit"
-        unix-socket path="/run/sentinel/ratelimit.sock"
+        unix-socket path="/run/zentinel/ratelimit.sock"
         timeout-ms 50
         failure-mode "open"
         limits {

@@ -5,9 +5,9 @@ use crate::ir::*;
 use crate::parsers::{ParseContext, ParseError, ParseOutput};
 use std::collections::HashMap;
 
-/// Convert nginx config AST to Sentinel IR
+/// Convert nginx config AST to Zentinel IR
 pub fn map_nginx_to_ir(config: NginxConfig, ctx: &ParseContext) -> Result<ParseOutput, ParseError> {
-    let mut sentinel_config = SentinelConfig::default();
+    let mut zentinel_config = ZentinelConfig::default();
     let mut diagnostics = Diagnostics::default();
 
     // Process top-level directives
@@ -15,7 +15,7 @@ pub fn map_nginx_to_ir(config: NginxConfig, ctx: &ParseContext) -> Result<ParseO
         match directive.name.as_str() {
             "worker_processes" => {
                 if let Some(arg) = directive.first_arg() {
-                    sentinel_config.system.worker_threads = if arg == "auto" {
+                    zentinel_config.system.worker_threads = if arg == "auto" {
                         Some(0)
                     } else {
                         arg.parse().ok()
@@ -28,7 +28,7 @@ pub fn map_nginx_to_ir(config: NginxConfig, ctx: &ParseContext) -> Result<ParseO
                     for d in block {
                         if d.name == "worker_connections" {
                             if let Some(arg) = d.first_arg() {
-                                sentinel_config.system.max_connections = arg.parse().ok();
+                                zentinel_config.system.max_connections = arg.parse().ok();
                             }
                         }
                     }
@@ -37,7 +37,7 @@ pub fn map_nginx_to_ir(config: NginxConfig, ctx: &ParseContext) -> Result<ParseO
             "http" => {
                 // Process http block
                 if let Some(block) = &directive.block {
-                    process_http_block(block, &mut sentinel_config, &mut diagnostics, ctx)?;
+                    process_http_block(block, &mut zentinel_config, &mut diagnostics, ctx)?;
                 }
             }
             _ => {
@@ -52,7 +52,7 @@ pub fn map_nginx_to_ir(config: NginxConfig, ctx: &ParseContext) -> Result<ParseO
     }
 
     Ok(ParseOutput {
-        config: sentinel_config,
+        config: zentinel_config,
         diagnostics,
     })
 }
@@ -60,7 +60,7 @@ pub fn map_nginx_to_ir(config: NginxConfig, ctx: &ParseContext) -> Result<ParseO
 /// Process the http block
 fn process_http_block(
     block: &[Directive],
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
     ctx: &ParseContext,
 ) -> Result<(), ParseError> {
@@ -185,7 +185,7 @@ fn process_upstream(directive: &Directive, diagnostics: &mut Diagnostics) -> Ups
 /// Process a server block
 fn process_server_block(
     directive: &Directive,
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
     ctx: &ParseContext,
 ) -> Result<(), ParseError> {

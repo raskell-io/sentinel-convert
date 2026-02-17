@@ -11,46 +11,46 @@ use crate::ir::{
     HeadersFilterConfig, HealthCheck, HealthCheckType, HeaderMatch, HostMatch, Listener,
     ListenerOptions, LoadBalancing, MiddlewareRef, PathMatch, PathMatchType, Protocol,
     RateLimitAgentConfig, RateLimitKey, RateLimitRule, Route, RouteAction, RouteMatcher,
-    RouteMetadata, SentinelConfig, Severity, SourceLocation, TlsConfig, Upstream, WafAgentConfig,
+    RouteMetadata, ZentinelConfig, Severity, SourceLocation, TlsConfig, Upstream, WafAgentConfig,
     WafMode,
 };
 use crate::parsers::{ParseContext, ParseError, ParseOutput};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-/// Convert Traefik config to Sentinel IR
+/// Convert Traefik config to Zentinel IR
 pub fn map_traefik_to_ir(
     config: TraefikConfig,
     ctx: &ParseContext,
 ) -> Result<ParseOutput, ParseError> {
-    let mut sentinel = SentinelConfig::default();
+    let mut zentinel = ZentinelConfig::default();
     let mut diagnostics = Diagnostics::default();
 
     // Map entry points to listeners
     for (name, entry_point) in &config.entry_points {
         if let Some(listener) = map_entry_point(name, entry_point, &mut diagnostics) {
-            sentinel.listeners.push(listener);
+            zentinel.listeners.push(listener);
         }
     }
 
     // Map services to upstreams
     for (name, service) in &config.http.services {
         if let Some(upstream) = map_service(name, service, &mut diagnostics) {
-            sentinel.upstreams.insert(name.clone(), upstream);
+            zentinel.upstreams.insert(name.clone(), upstream);
         }
     }
 
     // Map middlewares to filters/agents
     let (filters, agents) = map_middlewares(&config.http.middlewares, ctx, &mut diagnostics);
-    sentinel.filters = filters;
-    sentinel.agents = agents;
+    zentinel.filters = filters;
+    zentinel.agents = agents;
 
     // Map routers to routes
     for (name, router) in &config.http.routers {
         if let Some(route) =
             map_router(name, router, &config.http.middlewares, ctx, &mut diagnostics)
         {
-            sentinel.routes.push(route);
+            zentinel.routes.push(route);
         }
     }
 
@@ -87,7 +87,7 @@ pub fn map_traefik_to_ir(
     }
 
     Ok(ParseOutput {
-        config: sentinel,
+        config: zentinel,
         diagnostics,
     })
 }
@@ -114,7 +114,7 @@ fn add_warning(diagnostics: &mut Diagnostics, message: &str, location: Option<So
     });
 }
 
-/// Map a Traefik entry point to a Sentinel listener
+/// Map a Traefik entry point to a Zentinel listener
 fn map_entry_point(
     name: &str,
     entry_point: &super::EntryPoint,
@@ -191,7 +191,7 @@ fn parse_port(address: &str) -> u16 {
     }
 }
 
-/// Map a Traefik service to a Sentinel upstream
+/// Map a Traefik service to a Zentinel upstream
 fn map_service(name: &str, service: &Service, diagnostics: &mut Diagnostics) -> Option<Upstream> {
     // Handle load balancer service
     if let Some(lb) = &service.load_balancer {
@@ -366,7 +366,7 @@ fn parse_duration_ms(duration: Option<&str>) -> Option<u64> {
     }
 }
 
-/// Map Traefik middlewares to Sentinel filters and agents
+/// Map Traefik middlewares to Zentinel filters and agents
 fn map_middlewares(
     middlewares: &HashMap<String, Middleware>,
     ctx: &ParseContext,
@@ -481,7 +481,7 @@ fn map_middlewares(
             add_warning(
                 diagnostics,
                 &format!(
-                    "Middleware '{}' has circuit breaker - not directly supported in Sentinel",
+                    "Middleware '{}' has circuit breaker - not directly supported in Zentinel",
                     name
                 ),
                 Some(location.clone()),
@@ -534,7 +534,7 @@ fn map_rate_limit_middleware(
         name: format!("{}-ratelimit", name),
         agent_type: AgentType::RateLimit,
         config: AgentConfig::RateLimit(RateLimitAgentConfig {
-            socket_path: PathBuf::from(format!("/run/sentinel/{}-ratelimit.sock", name)),
+            socket_path: PathBuf::from(format!("/run/zentinel/{}-ratelimit.sock", name)),
             limits: vec![rule],
             timeout_ms: Some(50),
             failure_mode: FailureMode::Open,
@@ -558,7 +558,7 @@ fn map_basic_auth_middleware(
         name: format!("{}-auth", name),
         agent_type: AgentType::Auth,
         config: AgentConfig::Auth(AuthAgentConfig {
-            socket_path: PathBuf::from(format!("/run/sentinel/{}-auth.sock", name)),
+            socket_path: PathBuf::from(format!("/run/zentinel/{}-auth.sock", name)),
             auth_type: AuthType::Basic,
             type_config: AuthTypeConfig::Basic {
                 realm: basic_auth.realm.clone(),
@@ -595,7 +595,7 @@ fn map_forward_auth_middleware(
         name: format!("{}-auth", name),
         agent_type: AgentType::Auth,
         config: AgentConfig::Auth(AuthAgentConfig {
-            socket_path: PathBuf::from(format!("/run/sentinel/{}-auth.sock", name)),
+            socket_path: PathBuf::from(format!("/run/zentinel/{}-auth.sock", name)),
             auth_type: AuthType::Custom,
             type_config: AuthTypeConfig::Unknown,
             timeout_ms: Some(100),
@@ -634,7 +634,7 @@ fn map_ip_whitelist_middleware(
         name: format!("{}-waf", name),
         agent_type: AgentType::Waf,
         config: AgentConfig::Waf(WafAgentConfig {
-            socket_path: PathBuf::from(format!("/run/sentinel/{}-waf.sock", name)),
+            socket_path: PathBuf::from(format!("/run/zentinel/{}-waf.sock", name)),
             mode: WafMode::Prevention,
             ruleset: None,
             paranoia_level: None,
@@ -772,7 +772,7 @@ fn map_headers_middleware(
     })
 }
 
-/// Map a Traefik router to a Sentinel route
+/// Map a Traefik router to a Zentinel route
 fn map_router(
     name: &str,
     router: &Router,

@@ -3,14 +3,14 @@ members = ["crates/wasm"]
 resolver = "2"
 
 [package]
-name = "sentinel-convert"
+name = "zentinel-convert"
 version = "0.1.0"
 edition = "2021"
 authors = ["Raskell <hello@raskell.io>"]
-description = "Convert reverse proxy configurations to Sentinel KDL format"
+description = "Convert reverse proxy configurations to Zentinel KDL format"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/raskell-io/sentinel-convert"
-keywords = ["sentinel", "proxy", "config", "converter", "nginx"]
+repository = "https://github.com/zentinelproxy/zentinel-convert"
+keywords = ["zentinel", "proxy", "config", "converter", "nginx"]
 categories = ["command-line-utilities", "config"]
 
 [dependencies]
@@ -55,11 +55,11 @@ insta = { version = "1.38", features = ["yaml"] }
 tempfile = "3.10"
 
 [[bin]]
-name = "sentinel-convert"
+name = "zentinel-convert"
 path = "src/main.rs"
 
 [lib]
-name = "sentinel_convert"
+name = "zentinel_convert"
 path = "src/lib.rs"
 
 [profile.release]

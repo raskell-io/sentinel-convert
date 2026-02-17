@@ -4,7 +4,7 @@
 
 use crate::ir::{
     AgentConfig, AgentSuggestion, AgentType, Confidence, ExtractedWafRule, Filter,
-    FilterConfig, RouteMatcher, SentinelConfig, WafAction, WafAgentConfig, WafRuleType,
+    FilterConfig, RouteMatcher, ZentinelConfig, WafAction, WafAgentConfig, WafRuleType,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -101,7 +101,7 @@ impl WafDetector {
     }
 
     /// Detect WAF-related patterns in configuration
-    pub fn detect(&self, config: &SentinelConfig) -> Vec<AgentSuggestion> {
+    pub fn detect(&self, config: &ZentinelConfig) -> Vec<AgentSuggestion> {
         let mut suggestions = Vec::new();
         let mut extracted_rules = Vec::new();
         let mut detection_reasons = Vec::new();
@@ -138,7 +138,7 @@ impl WafDetector {
                     )
                 },
                 extracted_config: Some(AgentConfig::Waf(WafAgentConfig {
-                    socket_path: "/run/sentinel/waf.sock".into(),
+                    socket_path: "/run/zentinel/waf.sock".into(),
                     extracted_rules,
                     ..Default::default()
                 })),
@@ -152,7 +152,7 @@ impl WafDetector {
     /// Detect IP-based filtering rules
     fn detect_ip_rules(
         &self,
-        config: &SentinelConfig,
+        config: &ZentinelConfig,
         rules: &mut Vec<ExtractedWafRule>,
         reasons: &mut Vec<String>,
     ) {
@@ -194,7 +194,7 @@ impl WafDetector {
     /// Detect User-Agent blocking patterns
     fn detect_user_agent_rules(
         &self,
-        config: &SentinelConfig,
+        config: &ZentinelConfig,
         rules: &mut Vec<ExtractedWafRule>,
         reasons: &mut Vec<String>,
     ) {
@@ -235,7 +235,7 @@ impl WafDetector {
     /// Detect header-based security rules
     fn detect_header_security(
         &self,
-        config: &SentinelConfig,
+        config: &ZentinelConfig,
         rules: &mut Vec<ExtractedWafRule>,
         reasons: &mut Vec<String>,
     ) {
@@ -285,7 +285,7 @@ impl WafDetector {
     /// Detect path-based restrictions
     fn detect_path_restrictions(
         &self,
-        config: &SentinelConfig,
+        config: &ZentinelConfig,
         rules: &mut Vec<ExtractedWafRule>,
         reasons: &mut Vec<String>,
     ) {
@@ -349,7 +349,7 @@ impl WafDetector {
     /// Detect security-related filter configurations
     fn detect_security_filters(
         &self,
-        config: &SentinelConfig,
+        config: &ZentinelConfig,
         rules: &mut Vec<ExtractedWafRule>,
         reasons: &mut Vec<String>,
     ) {

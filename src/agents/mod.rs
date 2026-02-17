@@ -1,13 +1,13 @@
 //! Agent detection system
 //!
 //! Detects patterns in converted configurations that could benefit
-//! from Sentinel's agent system (WAF, Auth, RateLimit).
+//! from Zentinel's agent system (WAF, Auth, RateLimit).
 
 mod auth;
 mod ratelimit;
 mod waf;
 
-use crate::ir::{Agent, AgentConfig, AgentDetection, AgentType, Confidence, Diagnostics, SentinelConfig};
+use crate::ir::{Agent, AgentConfig, AgentDetection, AgentType, Confidence, Diagnostics, ZentinelConfig};
 use crate::AgentMode;
 
 pub use auth::AuthDetector;
@@ -33,7 +33,7 @@ impl AgentDetector {
     /// Analyze IR and detect/suggest agents
     pub fn detect(
         &self,
-        config: &mut SentinelConfig,
+        config: &mut ZentinelConfig,
         diagnostics: &mut Diagnostics,
         mode: AgentMode,
     ) {
@@ -95,7 +95,7 @@ fn suggestion_to_agent(suggestion: &crate::ir::AgentSuggestion) -> Option<Agent>
     let config = suggestion.extracted_config.clone().unwrap_or_else(|| {
         match suggestion.agent_type {
             AgentType::Waf => AgentConfig::Waf(crate::ir::WafAgentConfig {
-                socket_path: "/run/sentinel/waf.sock".into(),
+                socket_path: "/run/zentinel/waf.sock".into(),
                 ..Default::default()
             }),
             AgentType::Auth => AgentConfig::Auth(crate::ir::AuthAgentConfig::default()),

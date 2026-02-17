@@ -5,15 +5,15 @@ use crate::ir::*;
 use crate::parsers::{ParseContext, ParseError, ParseOutput};
 use std::collections::HashMap;
 
-/// Convert HAProxy config AST to Sentinel IR
+/// Convert HAProxy config AST to Zentinel IR
 pub fn map_haproxy_to_ir(config: HAProxyConfig, _ctx: &ParseContext) -> Result<ParseOutput, ParseError> {
-    let mut sentinel_config = SentinelConfig::default();
+    let mut zentinel_config = ZentinelConfig::default();
     let mut diagnostics = Diagnostics::default();
     let mut acls: HashMap<String, AclDefinition> = HashMap::new();
 
     // Process global section
     if let Some(global) = &config.global {
-        process_global(global, &mut sentinel_config, &mut diagnostics);
+        process_global(global, &mut zentinel_config, &mut diagnostics);
     }
 
     // Process defaults section
@@ -23,7 +23,7 @@ pub fn map_haproxy_to_ir(config: HAProxyConfig, _ctx: &ParseContext) -> Result<P
     for backend in &config.backends {
         if let Some(name) = &backend.name {
             let upstream = process_backend(backend, defaults, &mut diagnostics);
-            sentinel_config.upstreams.insert(name.clone(), upstream);
+            zentinel_config.upstreams.insert(name.clone(), upstream);
         }
     }
 
@@ -33,17 +33,17 @@ pub fn map_haproxy_to_ir(config: HAProxyConfig, _ctx: &ParseContext) -> Result<P
         collect_acls(frontend, &mut acls);
 
         // Create listeners and routes
-        process_frontend(frontend, defaults, &acls, &mut sentinel_config, &mut diagnostics)?;
+        process_frontend(frontend, defaults, &acls, &mut zentinel_config, &mut diagnostics)?;
     }
 
     // Process listen sections (combined frontend + backend)
     for listen in &config.listens {
         collect_acls(listen, &mut acls);
-        process_listen(listen, defaults, &acls, &mut sentinel_config, &mut diagnostics)?;
+        process_listen(listen, defaults, &acls, &mut zentinel_config, &mut diagnostics)?;
     }
 
     Ok(ParseOutput {
-        config: sentinel_config,
+        config: zentinel_config,
         diagnostics,
     })
 }
@@ -74,7 +74,7 @@ fn collect_acls(section: &Section, acls: &mut HashMap<String, AclDefinition>) {
 }
 
 /// Process global section
-fn process_global(global: &Section, config: &mut SentinelConfig, diagnostics: &mut Diagnostics) {
+fn process_global(global: &Section, config: &mut ZentinelConfig, diagnostics: &mut Diagnostics) {
     for directive in &global.directives {
         match directive.name.as_str() {
             "maxconn" => {
@@ -232,7 +232,7 @@ fn process_frontend(
     frontend: &Section,
     defaults: Option<&Section>,
     acls: &HashMap<String, AclDefinition>,
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
 ) -> Result<(), ParseError> {
     let frontend_name = frontend.name.clone().unwrap_or_else(|| "frontend".to_string());
@@ -338,7 +338,7 @@ fn process_listen(
     listen: &Section,
     defaults: Option<&Section>,
     acls: &HashMap<String, AclDefinition>,
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
 ) -> Result<(), ParseError> {
     let listen_name = listen.name.clone().unwrap_or_else(|| "listen".to_string());

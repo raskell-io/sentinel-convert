@@ -3,7 +3,7 @@
 use crate::ir::*;
 use std::fmt::Write;
 
-/// KDL emitter for generating Sentinel configuration
+/// KDL emitter for generating Zentinel configuration
 pub struct KdlEmitter {
     options: EmitterOptions,
 }
@@ -24,8 +24,8 @@ impl KdlEmitter {
         Self { options }
     }
 
-    /// Emit Sentinel KDL configuration
-    pub fn emit(&self, config: &SentinelConfig) -> Result<String, String> {
+    /// Emit Zentinel KDL configuration
+    pub fn emit(&self, config: &ZentinelConfig) -> Result<String, String> {
         let mut output = String::new();
         let indent = if self.options.indent.is_empty() {
             "    "

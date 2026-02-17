@@ -1,10 +1,10 @@
-//! Golden file tests for sentinel-convert
+//! Golden file tests for zentinel-convert
 //!
 //! These tests convert fixture files and compare the KDL output against snapshots.
 //! Run `cargo insta review` to update snapshots after intentional changes.
 
-use sentinel_convert::emitter::{EmitterOptions, KdlEmitter};
-use sentinel_convert::parsers::{ParseContext, ParserRegistry};
+use zentinel_convert::emitter::{EmitterOptions, KdlEmitter};
+use zentinel_convert::parsers::{ParseContext, ParserRegistry};
 use std::fs;
 use std::path::PathBuf;
 

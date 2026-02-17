@@ -1,4 +1,4 @@
-//! Envoy to Sentinel IR mapping
+//! Envoy to Zentinel IR mapping
 
 use super::{
     Cluster, EnvoyConfig, FilterChain, HttpConnectionManager, Listener as EnvoyListener,
@@ -10,26 +10,26 @@ use crate::ir::{
     FilterConfig, FilterType, HealthCheck, HealthCheckType, HeaderOperation, HeaderOperationType,
     HeadersFilterConfig, Listener, ListenerOptions, LoadBalancing, PathMatch, PathMatchType,
     Protocol, RateLimitAgentConfig, Route, RouteAction as IrRouteAction, RouteMatcher, HostMatch,
-    SentinelConfig, Severity, SystemConfig, Upstream,
+    ZentinelConfig, Severity, SystemConfig, Upstream,
 };
 use crate::parsers::{ParseContext, ParseError, ParseOutput};
 
-/// Map Envoy configuration to Sentinel IR
+/// Map Envoy configuration to Zentinel IR
 pub fn map_envoy_to_ir(config: EnvoyConfig, _ctx: &ParseContext) -> Result<ParseOutput, ParseError> {
     let mut diagnostics = Diagnostics::default();
-    let mut sentinel_config = SentinelConfig::default();
+    let mut zentinel_config = ZentinelConfig::default();
 
     // Process listeners
     for listener in &config.static_resources.listeners {
         if let Some(ir_listener) = map_listener(listener, &mut diagnostics) {
-            sentinel_config.listeners.push(ir_listener);
+            zentinel_config.listeners.push(ir_listener);
         }
 
         // Extract routes and filters from filter chains
         for filter_chain in &listener.filter_chains {
             extract_routes_from_filter_chain(
                 filter_chain,
-                &mut sentinel_config,
+                &mut zentinel_config,
                 &mut diagnostics,
             );
         }
@@ -38,22 +38,22 @@ pub fn map_envoy_to_ir(config: EnvoyConfig, _ctx: &ParseContext) -> Result<Parse
     // Process clusters (upstreams)
     for cluster in &config.static_resources.clusters {
         if let Some((name, upstream)) = map_cluster(cluster, &mut diagnostics) {
-            sentinel_config.upstreams.insert(name, upstream);
+            zentinel_config.upstreams.insert(name, upstream);
         }
     }
 
     // Detect agents from HTTP filters
-    detect_agents_from_config(&config, &mut sentinel_config, &mut diagnostics);
+    detect_agents_from_config(&config, &mut zentinel_config, &mut diagnostics);
 
     // Set default system config
-    sentinel_config.system = SystemConfig {
+    zentinel_config.system = SystemConfig {
         worker_threads: Some(0), // auto
         max_connections: Some(10000),
         ..Default::default()
     };
 
     Ok(ParseOutput {
-        config: sentinel_config,
+        config: zentinel_config,
         diagnostics,
     })
 }
@@ -135,7 +135,7 @@ fn extract_tls_config(ts: &super::TransportSocket) -> Option<crate::ir::TlsConfi
 /// Extract routes from filter chain
 fn extract_routes_from_filter_chain(
     filter_chain: &FilterChain,
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
 ) {
     for filter in &filter_chain.filters {
@@ -160,7 +160,7 @@ fn extract_routes_from_filter_chain(
 /// Process HTTP connection manager configuration
 fn process_http_connection_manager(
     hcm: &HttpConnectionManager,
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
 ) {
     // Process route configuration
@@ -175,7 +175,7 @@ fn process_http_connection_manager(
 /// Process route configuration
 fn process_route_configuration(
     route_config: &RouteConfiguration,
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
 ) {
     for vhost in &route_config.virtual_hosts {
@@ -186,7 +186,7 @@ fn process_route_configuration(
 /// Process virtual host
 fn process_virtual_host(
     vhost: &VirtualHost,
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     _diagnostics: &mut Diagnostics,
 ) {
     let vhost_name = vhost.name.clone().unwrap_or_else(|| "default".to_string());
@@ -478,7 +478,7 @@ fn map_cluster(cluster: &Cluster, _diagnostics: &mut Diagnostics) -> Option<(Str
 /// Process HTTP filters for agent detection
 fn process_http_filters(
     filters: &[super::HttpFilter],
-    config: &mut SentinelConfig,
+    config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
 ) {
     for filter in filters {
@@ -490,7 +490,7 @@ fn process_http_filters(
                 name: "ext-authz".to_string(),
                 agent_type: AgentType::Auth,
                 config: AgentConfig::Auth(AuthAgentConfig {
-                    socket_path: "/run/sentinel/ext-authz.sock".into(),
+                    socket_path: "/run/zentinel/ext-authz.sock".into(),
                     auth_type: AuthType::Custom,
                     type_config: AuthTypeConfig::Unknown,
                     timeout_ms: Some(100),
@@ -520,7 +520,7 @@ fn process_http_filters(
                 name: "ratelimit".to_string(),
                 agent_type: AgentType::RateLimit,
                 config: AgentConfig::RateLimit(RateLimitAgentConfig {
-                    socket_path: "/run/sentinel/ratelimit.sock".into(),
+                    socket_path: "/run/zentinel/ratelimit.sock".into(),
                     limits: vec![],
                     timeout_ms: Some(50),
                     failure_mode: crate::ir::FailureMode::Open,
@@ -549,7 +549,7 @@ fn process_http_filters(
                 name: "jwt-auth".to_string(),
                 agent_type: AgentType::Auth,
                 config: AgentConfig::Auth(AuthAgentConfig {
-                    socket_path: "/run/sentinel/jwt-auth.sock".into(),
+                    socket_path: "/run/zentinel/jwt-auth.sock".into(),
                     auth_type: AuthType::Jwt,
                     type_config: AuthTypeConfig::Jwt {
                         issuer: None,
@@ -583,7 +583,7 @@ fn process_http_filters(
                 severity: Severity::Warning,
                 source_location: None,
                 source_directive: "rbac filter".to_string(),
-                message: "RBAC filter detected - manual configuration required for Sentinel".to_string(),
+                message: "RBAC filter detected - manual configuration required for Zentinel".to_string(),
                 suggestion: Some("Configure custom Auth agent with RBAC rules".to_string()),
             });
         }
@@ -593,7 +593,7 @@ fn process_http_filters(
 /// Detect agents from Envoy configuration
 fn detect_agents_from_config(
     config: &EnvoyConfig,
-    _sentinel_config: &mut SentinelConfig,
+    _zentinel_config: &mut ZentinelConfig,
     diagnostics: &mut Diagnostics,
 ) {
     // Check for rate limits in virtual hosts

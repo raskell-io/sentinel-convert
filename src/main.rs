@@ -1,9 +1,9 @@
 use clap::Parser;
 use colored::*;
-use sentinel_convert::cli::{Cli, Commands, ConvertArgs, AnalyzeArgs, DetectArgs};
-use sentinel_convert::emitter::EmitterOptions;
-use sentinel_convert::parsers::{ParseOptions, ParserRegistry};
-use sentinel_convert::{convert, AgentMode, ConvertOptions};
+use zentinel_convert::cli::{Cli, Commands, ConvertArgs, AnalyzeArgs, DetectArgs};
+use zentinel_convert::emitter::EmitterOptions;
+use zentinel_convert::parsers::{ParseOptions, ParserRegistry};
+use zentinel_convert::{convert, AgentMode, ConvertOptions};
 use std::fs;
 use std::io::{self, Write};
 use std::process;
@@ -13,9 +13,9 @@ fn main() {
 
     // Set up color output
     match cli.color {
-        sentinel_convert::cli::ColorChoice::Always => colored::control::set_override(true),
-        sentinel_convert::cli::ColorChoice::Never => colored::control::set_override(false),
-        sentinel_convert::cli::ColorChoice::Auto => {}
+        zentinel_convert::cli::ColorChoice::Always => colored::control::set_override(true),
+        zentinel_convert::cli::ColorChoice::Never => colored::control::set_override(false),
+        zentinel_convert::cli::ColorChoice::Auto => {}
     }
 
     let result = match cli.command {
@@ -124,9 +124,9 @@ fn run_analyze(args: AnalyzeArgs, verbose: u8) -> Result<(), String> {
 
                 for suggestion in &result.diagnostics.agent_suggestions {
                     let confidence_str = match suggestion.confidence {
-                        sentinel_convert::ir::Confidence::High => "High".green(),
-                        sentinel_convert::ir::Confidence::Medium => "Medium".yellow(),
-                        sentinel_convert::ir::Confidence::Low => "Low".red(),
+                        zentinel_convert::ir::Confidence::High => "High".green(),
+                        zentinel_convert::ir::Confidence::Medium => "Medium".yellow(),
+                        zentinel_convert::ir::Confidence::Low => "Low".red(),
                     };
 
                     println!(
@@ -178,13 +178,13 @@ fn run_detect(args: DetectArgs) -> Result<(), String> {
     Ok(())
 }
 
-fn print_diagnostics(diagnostics: &sentinel_convert::ir::Diagnostics, verbose: u8) {
+fn print_diagnostics(diagnostics: &zentinel_convert::ir::Diagnostics, verbose: u8) {
     // Print warnings
     for warning in &diagnostics.warnings {
         let prefix = match warning.severity {
-            sentinel_convert::ir::Severity::Info => "info".blue(),
-            sentinel_convert::ir::Severity::Warning => "warning".yellow(),
-            sentinel_convert::ir::Severity::Error => "error".red(),
+            zentinel_convert::ir::Severity::Info => "info".blue(),
+            zentinel_convert::ir::Severity::Warning => "warning".yellow(),
+            zentinel_convert::ir::Severity::Error => "error".red(),
         };
 
         eprintln!("{}: {}", prefix, warning.message);
@@ -213,9 +213,9 @@ fn print_diagnostics(diagnostics: &sentinel_convert::ir::Diagnostics, verbose: u
         eprintln!("{}", "Agent suggestions:".cyan());
         for suggestion in &diagnostics.agent_suggestions {
             let confidence = match suggestion.confidence {
-                sentinel_convert::ir::Confidence::High => "high".green(),
-                sentinel_convert::ir::Confidence::Medium => "medium".yellow(),
-                sentinel_convert::ir::Confidence::Low => "low".red(),
+                zentinel_convert::ir::Confidence::High => "high".green(),
+                zentinel_convert::ir::Confidence::Medium => "medium".yellow(),
+                zentinel_convert::ir::Confidence::Low => "low".red(),
             };
 
             eprintln!(

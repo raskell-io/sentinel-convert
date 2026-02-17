@@ -8,18 +8,18 @@ use crate::ir::{
     HeaderOperationType, HeadersFilterConfig, HealthCheck, HealthCheckType, HostMatch, Listener,
     ListenerOptions, LoadBalancing, MiddlewareRef, PathMatch, PathMatchType, Protocol,
     RateLimitAgentConfig, RateLimitKey, RateLimitRule, Route, RouteAction, RouteMatcher,
-    RouteMetadata, SentinelConfig, Severity, SourceLocation, TlsConfig, Upstream,
+    RouteMetadata, ZentinelConfig, Severity, SourceLocation, TlsConfig, Upstream,
 };
 use crate::parsers::{ParseContext, ParseError, ParseOutput};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
-/// Convert Caddy config to Sentinel IR
+/// Convert Caddy config to Zentinel IR
 pub fn map_caddy_to_ir(
     config: CaddyConfig,
     ctx: &ParseContext,
 ) -> Result<ParseOutput, ParseError> {
-    let mut sentinel = SentinelConfig::default();
+    let mut zentinel = ZentinelConfig::default();
     let mut diagnostics = Diagnostics::default();
 
     // Track unique listeners by address
@@ -36,7 +36,7 @@ pub fn map_caddy_to_ir(
         // Create listeners for site addresses
         for addr in &site.addresses {
             if let Some(listener) = create_listener_from_address(addr, &mut listener_addresses) {
-                sentinel.listeners.push(listener);
+                zentinel.listeners.push(listener);
             }
         }
 
@@ -48,14 +48,14 @@ pub fn map_caddy_to_ir(
             &mut diagnostics,
         );
 
-        sentinel.routes.extend(routes);
+        zentinel.routes.extend(routes);
         for (name, upstream) in upstreams {
-            sentinel.upstreams.insert(name, upstream);
+            zentinel.upstreams.insert(name, upstream);
         }
         for (name, filter) in filters {
-            sentinel.filters.insert(name, filter);
+            zentinel.filters.insert(name, filter);
         }
-        sentinel.agents.extend(agents);
+        zentinel.agents.extend(agents);
     }
 
     // Handle snippets
@@ -68,7 +68,7 @@ pub fn map_caddy_to_ir(
     }
 
     Ok(ParseOutput {
-        config: sentinel,
+        config: zentinel,
         diagnostics,
     })
 }
@@ -108,7 +108,7 @@ fn process_global_options(global: &super::GlobalOptions, diagnostics: &mut Diagn
     if let Some(admin) = &global.admin {
         add_info(
             diagnostics,
-            &format!("Admin endpoint: {} - not mapped to Sentinel", admin),
+            &format!("Admin endpoint: {} - not mapped to Zentinel", admin),
             None,
         );
     }
@@ -717,7 +717,7 @@ fn process_basicauth(directive: &Directive, location: &SourceLocation) -> Option
         name: "basicauth".to_string(),
         agent_type: AgentType::Auth,
         config: AgentConfig::Auth(AuthAgentConfig {
-            socket_path: PathBuf::from("/run/sentinel/auth.sock"),
+            socket_path: PathBuf::from("/run/zentinel/auth.sock"),
             auth_type: AuthType::Basic,
             type_config: AuthTypeConfig::Basic {
                 realm,
@@ -755,7 +755,7 @@ fn process_forward_auth(
         name: "forward-auth".to_string(),
         agent_type: AgentType::Auth,
         config: AgentConfig::Auth(AuthAgentConfig {
-            socket_path: PathBuf::from("/run/sentinel/forward-auth.sock"),
+            socket_path: PathBuf::from("/run/zentinel/forward-auth.sock"),
             auth_type: AuthType::Custom,
             type_config: AuthTypeConfig::Unknown,
             timeout_ms: Some(100),
@@ -849,7 +849,7 @@ fn process_rate_limit(directive: &Directive, location: &SourceLocation) -> Optio
         name: "rate-limit".to_string(),
         agent_type: AgentType::RateLimit,
         config: AgentConfig::RateLimit(RateLimitAgentConfig {
-            socket_path: PathBuf::from("/run/sentinel/ratelimit.sock"),
+            socket_path: PathBuf::from("/run/zentinel/ratelimit.sock"),
             limits,
             timeout_ms: Some(50),
             failure_mode: FailureMode::Open,
@@ -1018,7 +1018,7 @@ fn process_tls_directive(directive: &Directive, diagnostics: &mut Diagnostics) {
     if directive.args.is_empty() || directive.args.first().map(|s| s.as_str()) == Some("internal") {
         add_info(
             diagnostics,
-            "TLS with automatic certificates - Sentinel requires manual TLS configuration",
+            "TLS with automatic certificates - Zentinel requires manual TLS configuration",
             Some(directive.location.clone()),
         );
     } else if directive.args.len() >= 2 {
